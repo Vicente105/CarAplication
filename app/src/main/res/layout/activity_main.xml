@@ -35,7 +35,7 @@
         android:text="coodenadas: "
         android:layout_marginLeft="20dp"
         android:layout_marginTop="20dp"
-        android:textColor="@color/black"
+        android:textColor="@color/white"
         android:textSize="20sp"/>
 
     <TextView
@@ -46,18 +46,9 @@
         android:layout_below="@+id/TVcoor"
         android:layout_marginLeft="20dp"
         android:layout_marginTop="20dp"
-        android:textColor="@color/black"
+        android:textColor="@color/white"
         android:textSize="20sp"/>
 
-    <Button
-        android:id="@+id/btnFreno"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_below="@+id/TVcoor2"
-        android:layout_marginTop="400dp"
-        android:text="FRENO"
-        android:textSize="30sp"/>
 
 
 

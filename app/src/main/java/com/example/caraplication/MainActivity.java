@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     ImageView fondo, carro;
     TextView coordenada, cor2;
-    Button freno;
+
 
     public static BluetoothDevice hc06;
     public static BluetoothSocket bluetoothSocket;
@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float sensitivity = 10.0f; // Sensibilidad ajustable
 
     private SensorManager sensorManager;
-    private Sensor gyroscopeSensor;
+    private Sensor gyroscopeSensor, accelerometer;
     private int lastDirection = RELEASED;
 
 
@@ -64,12 +64,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         gyroscopeSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
         coordenada = (TextView) findViewById(R.id.TVcoor);
         cor2 = (TextView) findViewById(R.id.TVcoor2);
         carro = (ImageView) findViewById(R.id.IMcarro);
         fondo = (ImageView) findViewById(R.id.IVfondo);
-        freno = (Button) findViewById(R.id.btnFreno);
+
 
         Glide.with(this)
                 .asGif()
@@ -101,13 +102,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             gyroscopeSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         }
 
-        freno.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                coordenada.setText("ALTO");
-                enviarMsjBt((byte) 53);
-            }
-        });
 
     }
 
@@ -117,6 +111,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // Registrar el SensorEventListener para el gyroscopeSensor
         if (sensorManager != null && gyroscopeSensor != null) {
             sensorManager.registerListener(this, gyroscopeSensor, SensorManager.SENSOR_DELAY_NORMAL);
+            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
         }
     }
 
@@ -127,6 +122,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (sensorManager != null) {
             sensorManager.unregisterListener(this);
         }
+        sensorManager.unregisterListener(this);
     }
 
     @Override
@@ -156,41 +152,31 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             carro.setY(newY);
             carro.setTranslationZ(newZ);
 
-            // Verificar si la dirección ha cambiado desde la última vez
-            int direction = getDirectionFromGyroscope(x,y);
-            if (lastDirection != direction) {
-                switch (direction) {
-                    case UP:
-                        coordenada.setText("ARRIBA");
-                        enviarMsjBt((byte) 52);
-                        break;
-                    case DOWN:
-                        coordenada.setText("ABAJO");
-                        enviarMsjBt((byte) 51);
-                        break;
-                    case LEFT:
-                        coordenada.setText("IZQUIERDA");
-                        enviarMsjBt((byte) 49);
-                        break;
-                    case RIGHT:
-                        coordenada.setText("DERECHA");
-                        enviarMsjBt((byte) 50);
-                        break;
-                    case RELEASED:
-                        coordenada.setText(lastCoordinate);
-                        enviarMsjBt((byte) 53);
-                        break;
-                }
-                lastDirection = direction;
-            } else if (direction == RELEASED) {
-                coordenada.setText(lastCoordinate);
-                enviarMsjBt((byte) 53);
-            } else {
-                lastCoordinate = coordenada.getText().toString();
+        }else if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
+            float xAxis = event.values[0];
+            float yAxis = event.values[1];
+            float zAxis = event.values[2];
+
+            // Ajusta los valores de umbral según sea necesario
+            float thresholdX = 3.0f;
+            float thresholdY = 2.5f;
+
+            if (xAxis > thresholdX) {
+                coordenada.setText("IZQUIERDA");
+                enviarMsjBt((byte)50);
+            } else if (xAxis < -thresholdX) {
+                coordenada.setText("DERECHA");
+                enviarMsjBt((byte)49);
+            } else if (yAxis > thresholdY) {
+                coordenada.setText("ATRAS");
+                enviarMsjBt((byte)51);
+            } else if (yAxis < -thresholdY) {
+                coordenada.setText("ADELANTE");
+                enviarMsjBt((byte)52);
+            }else {
+                coordenada.setText("ALTO");
+                enviarMsjBt((byte)53);
             }
-
-
-
         }
 
     }
