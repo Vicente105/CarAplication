@@ -20,9 +20,8 @@
         android:theme="@style/Theme.CarAplication"
         tools:targetApi="31">
         <activity
-            android:name=".SincronizarBluethooth"
-            android:exported="true"
-            android:screenOrientation="landscape">
+            android:name=".MainActivity"
+            android:exported="true">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -34,7 +33,7 @@
                 android:value="" />
         </activity>
         <activity
-            android:name=".MainActivity"
+            android:name=".SincronizarBluethooth"
             android:exported="false"
             android:screenOrientation="landscape">
             <meta-data

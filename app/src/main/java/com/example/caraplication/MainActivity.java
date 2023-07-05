@@ -14,6 +14,8 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
+import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -27,7 +29,8 @@ import java.io.OutputStream;
 public class MainActivity extends AppCompatActivity implements SensorEventListener{
 
     ImageView fondo, carro;
-    TextView coordenada;
+    TextView coordenada, cor2;
+    Button freno;
 
     public static BluetoothDevice hc06;
     public static BluetoothSocket bluetoothSocket;
@@ -37,13 +40,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float initialY; // Posición inicial Y del carro
     private float initialZ; // Posición inicial Z del carro
 
-    private static final float THRESHOLD = 1.5f;
+
     private static final int UP = 0;
     private static final int DOWN = 1;
     private static final int LEFT = 2;
     private static final int RIGHT = 3;
     private static final int RELEASED = 4;
 
+    private String lastCoordinate = "ALTO";
 
     private float sensitivity = 10.0f; // Sensibilidad ajustable
 
@@ -62,8 +66,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         gyroscopeSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 
         coordenada = (TextView) findViewById(R.id.TVcoor);
+        cor2 = (TextView) findViewById(R.id.TVcoor2);
         carro = (ImageView) findViewById(R.id.IMcarro);
         fondo = (ImageView) findViewById(R.id.IVfondo);
+        freno = (Button) findViewById(R.id.btnFreno);
 
         Glide.with(this)
                 .asGif()
@@ -95,6 +101,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             gyroscopeSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         }
 
+        freno.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                coordenada.setText("ALTO");
+                enviarMsjBt((byte) 53);
+            }
+        });
+
     }
 
     @Override
@@ -124,12 +138,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             float z = event.values[2];
 
             String coordinates = "X: " + x + "\nY: " + y + "\nZ: " + z;
-            // coordenada.setText(coordinates);
+            cor2.setText(coordinates);
 
 
             // Calcular el desplazamiento en función de los valores del giroscopio y la sensibilidad ajustable
-            float displacementX = x * sensitivity;
-            float displacementY = y * sensitivity;
+            float displacementX = y * sensitivity; // Cambiar de x a y
+            float displacementY = x * sensitivity; // Cambiar de y a x
             float displacementZ = z * sensitivity;
 
             // Calcular la nueva posición del carro
@@ -142,11 +156,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             carro.setY(newY);
             carro.setTranslationZ(newZ);
 
-            // Obtener la dirección basada en los valores del giroscopio
-           // int direction = getDirectionFromGyroscope(x, y, z);
-
             // Verificar si la dirección ha cambiado desde la última vez
-            int direction = getDirectionFromGyroscope(x,y,z);
+            int direction = getDirectionFromGyroscope(x,y);
             if (lastDirection != direction) {
                 switch (direction) {
                     case UP:
@@ -166,11 +177,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         enviarMsjBt((byte) 50);
                         break;
                     case RELEASED:
-                        coordenada.setText("ALTO");
+                        coordenada.setText(lastCoordinate);
                         enviarMsjBt((byte) 53);
                         break;
                 }
                 lastDirection = direction;
+            } else if (direction == RELEASED) {
+                coordenada.setText(lastCoordinate);
+                enviarMsjBt((byte) 53);
+            } else {
+                lastCoordinate = coordenada.getText().toString();
             }
 
 
@@ -186,25 +202,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
 
-    private int getDirectionFromGyroscope(float x, float y, float z) {
+    private int getDirectionFromGyroscope(float x, float y) {
+        float errorMargin = 1.2f; // Margen de error tolerado
 
-        if (x > 1.0f){
-            coordenada.setText("ARRIBA");
-            enviarMsjBt((byte) 52);
-        }else if(x < -1.0f){
-            coordenada.setText("IZQUIERDA");
-            enviarMsjBt((byte) 49);
-        }else if(y > 1.0f){
-            coordenada.setText("ARRIBA");
-            enviarMsjBt((byte) 52);
-        }else if(y < -1.0f){
-            coordenada.setText("ABAJO");
-            enviarMsjBt((byte) 51);
-        }else {
-            coordenada.setText("ALTO");
-            enviarMsjBt((byte) 53);
+        if (x > errorMargin) {
+            return DOWN;
+        } else if (x < -errorMargin) {
+            return UP;
+        } else if (y > errorMargin) {
+            return RIGHT;
+        } else if (y < -errorMargin) {
+            return LEFT;
         }
-        return lastDirection;
+
+        return RELEASED;
     }
 
 
